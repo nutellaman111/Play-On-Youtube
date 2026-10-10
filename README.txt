@@ -1,4 +1,6 @@
-hiii this extension adds a context menu option named "play on youtube":
-it searches the selected text on youtube and plays the first result in a popup
+Hiii this extension adds a context menu option named "Play On YouTube":
+It searches the selected text on YouTube and plays the first result in a small popup
 
-disclaimer - this extension was made using AI
+Disclaimer - this extension was made using AI
+
+Star this on Github or something https://github.com/nutellaman111/Play-On-Youtube
