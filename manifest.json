@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Search Song on YouTube",
+  "version": "1.0.0",
+  "description": "Right-click selected text to play the first YouTube search result.",
+  "permissions": ["contextMenus", "tabs", "scripting", "activeTab"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  }
+}
