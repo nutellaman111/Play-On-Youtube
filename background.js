@@ -42,12 +42,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
 
-  const videoId = await findFirstYouTubeVideoId(query);
-  if (!videoId) return;
+  const requestId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-  chrome.scripting.executeScript({
+  await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    func: (youTubeVideoId, selectedText) => {
+    func: (selectedText, searchRequestId) => {
       const playerId = "search-song-mini-player";
       let player = document.getElementById(playerId);
 
@@ -70,21 +69,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           userSelect: "none",
           WebkitUserSelect: "none",
           cursor: "default",
-          opacity: "0.75",
           touchAction: "none",
           transition: "opacity 0.2s ease",
           resize: "none"
         });
 
-        player.addEventListener("mouseenter", () => {
-          player.style.opacity = "1";
-          player.style.pointerEvents = "auto";
-        });
-
-        player.addEventListener("mouseleave", () => {
-          player.style.opacity = "0.75";
-          player.style.pointerEvents = "auto";
-        });
 
         const titleBar = document.createElement("div");
         Object.assign(titleBar.style, {
@@ -215,8 +204,38 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
           background: "#000"
         });
 
+        const loadingIndicator = document.createElement("div");
+        loadingIndicator.dataset.role = "loading";
+        Object.assign(loadingIndicator.style, {
+          position: "absolute",
+          inset: "26px 0 0",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "12px",
+          color: "#fff",
+          background: "#111",
+          fontSize: "13px",
+          pointerEvents: "none"
+        });
+
+        const spinner = document.createElement("div");
+        Object.assign(spinner.style, {
+          width: "32px",
+          height: "32px",
+          border: "3px solid rgba(255,255,255,0.25)",
+          borderTopColor: "#fff",
+          borderRadius: "50%"
+        });
+
+        const loadingText = document.createElement("span");
+        loadingText.textContent = "Searching YouTube...";
+        loadingIndicator.append(spinner, loadingText);
+
         player.appendChild(titleBar);
         player.appendChild(iframe);
+        player.appendChild(loadingIndicator);
 
         let resizing = false;
         let resizeEdge = null;
@@ -367,16 +386,52 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       }
 
       const iframe = player.querySelector("iframe");
-      iframe.src = `https://www.youtube.com/embed/${youTubeVideoId}?autoplay=1&controls=1&playsinline=1&rel=0`;
       iframe.title = "YouTube player";
 
       const title = player.querySelector("span");
       title.textContent = selectedText;
+      player.dataset.searchRequestId = searchRequestId;
+      const loadingIndicator = player.querySelector('[data-role="loading"]');
+      const spinner = loadingIndicator.querySelector("div");
+      const loadingText = loadingIndicator.querySelector("span");
+      loadingIndicator.style.display = "flex";
+      spinner.style.display = "block";
+      spinner.getAnimations().forEach((animation) => animation.cancel());
+      spinner.animate(
+        [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }],
+        { duration: 800, iterations: Infinity }
+      );
+      loadingText.textContent = "Searching YouTube...";
 
       if (player.__closeButton) {
         player.__closeButton.onclick = () => player.remove();
       }
     },
-    args: [videoId, query]
+    args: [query, requestId]
+  });
+
+  const videoId = await findFirstYouTubeVideoId(query);
+
+  await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    func: (searchRequestId, youTubeVideoId) => {
+      const player = document.getElementById("search-song-mini-player");
+      if (!player || player.dataset.searchRequestId !== searchRequestId) return;
+
+      const loadingIndicator = player.querySelector('[data-role="loading"]');
+      const loadingText = loadingIndicator.querySelector("span");
+      const spinner = loadingIndicator.querySelector("div");
+      spinner.getAnimations().forEach((animation) => animation.cancel());
+
+      if (youTubeVideoId) {
+        const iframe = player.querySelector("iframe");
+        iframe.src = `https://www.youtube.com/embed/${youTubeVideoId}?autoplay=1&controls=1&playsinline=1&rel=0`;
+        loadingIndicator.style.display = "none";
+      } else {
+        spinner.style.display = "none";
+        loadingText.textContent = "No video found.";
+      }
+    },
+    args: [requestId, videoId]
   });
 });

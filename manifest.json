@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Search Song on YouTube",
+  "name": "Play On Youtube",
   "version": "1.0.0",
   "description": "Right-click selected text to play the first YouTube search result.",
   "permissions": ["contextMenus", "tabs", "scripting", "activeTab"],
@@ -8,5 +8,8 @@
   "background": {
     "service_worker": "background.js",
     "scripts": ["background.js"]
+  },
+  "icons": {
+    "128": "icon.png"
   }
 }
